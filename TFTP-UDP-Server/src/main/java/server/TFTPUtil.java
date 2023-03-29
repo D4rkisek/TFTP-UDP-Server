@@ -5,40 +5,11 @@ import java.net.*;
 import java.nio.ByteBuffer;
 
 public class TFTPUtil {
-    // Constants for TFTP opcodes and error codes
-    public static final short OP_RRQ = 1;
-    public static final short OP_WRQ = 2;
-    public static final short OP_DATA = 3;
-    public static final short OP_ACK = 4;
-    public static final short OP_ERROR = 5;
-    public static final short ERR_FILE_NOT_FOUND = 1;
-
-    // Helper methods for reading and writing data packets, as well as error handling
-    public static DatagramPacket createReadRequestPacket(InetAddress serverAddress, int port, String fileName) {
-        return createRequestPacket(serverAddress, port, fileName, OP_RRQ);
-    }
-
-    public static DatagramPacket createWriteRequestPacket(InetAddress serverAddress, int port, String fileName) {
-        return createRequestPacket(serverAddress, port, fileName, OP_WRQ);
-    }
-
-    private static DatagramPacket createRequestPacket(InetAddress serverAddress, int port, String fileName, short opcode) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
-
-        try {
-            dataOutputStream.writeShort(opcode);
-            dataOutputStream.writeBytes(fileName);
-            dataOutputStream.writeByte(0);
-            dataOutputStream.writeBytes("octet");
-            dataOutputStream.writeByte(0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        byte[] requestData = byteArrayOutputStream.toByteArray();
-        return new DatagramPacket(requestData, requestData.length, serverAddress, port);
-    }
+    // Constants for TFTP opcodes
+    public static final short OP_RRQ = 1; // Sending a file
+    public static final short OP_WRQ = 2; // Retrieving a file
+    public static final short OP_DATA = 3; // Data packet
+    public static final short OP_ACK = 4; // Acknowledgements
 
     public static DatagramPacket createDataPacket(InetAddress serverAddress, int port, short blockNumber, byte[] data, int dataLength) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -62,22 +33,6 @@ public class TFTPUtil {
         return new DatagramPacket(ackData, ackData.length, serverAddress, port);
     }
 
-    public static DatagramPacket createErrorPacket(InetAddress serverAddress, int port, short errorCode, String errorMessage) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
-
-        try {
-            dataOutputStream.writeShort(OP_ERROR);
-            dataOutputStream.writeShort(errorCode);
-            dataOutputStream.writeBytes(errorMessage);
-            dataOutputStream.writeByte(0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        byte[] errorData = byteArrayOutputStream.toByteArray();
-        return new DatagramPacket(errorData, errorData.length, serverAddress, port);
-    }
 
     public static void sendFile(DatagramSocket socket, InetAddress serverAddress, int port, String fileName) throws IOException {
         File file = new File(fileName);
@@ -86,7 +41,7 @@ public class TFTPUtil {
         }
 
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
-            short blockNumber = 1;
+            short blockNumber = 0;
             byte[] buffer = new byte[512];
             int bytesRead;
 
@@ -110,7 +65,7 @@ public class TFTPUtil {
     }
     public static void receiveFile(DatagramSocket socket, InetAddress serverAddress, int port, String fileName) throws IOException {
         try (FileOutputStream fileOutputStream = new FileOutputStream(fileName)) {
-            short expectedBlockNumber = 1;
+            short expectedBlockNumber = 0;
 
             // Send the initial ACK packet with block number 0
             DatagramPacket initialAckPacket = createAckPacket(serverAddress, port, (short) 0);
@@ -150,7 +105,7 @@ public class TFTPUtil {
         return ByteBuffer.wrap(data).getShort();
     }
 
-    public static String getFileName(DatagramPacket packet) {
+    public static String getFileName(DatagramPacket packet) throws IOException {
         byte[] data = packet.getData();
         int length = packet.getLength();
         StringBuilder fileName = new StringBuilder();
@@ -161,7 +116,6 @@ public class TFTPUtil {
             }
             fileName.append(c);
         }
-
         return fileName.toString();
     }
 }
