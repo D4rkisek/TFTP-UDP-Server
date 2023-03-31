@@ -23,7 +23,7 @@ public class TFTPUDPServer {
             while (true) {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 serverSocket.receive(packet);
-                System.out.println("Received packet 0 from " + packet.getAddress() + ":" + packet.getPort()); // Receiver receives pkt0
+                System.out.println("Received packet 0 from " + packet.getAddress() + ", Port Num:" + packet.getPort()); // Receiver receives pkt0
                 new TFTPUDPServerThread(serverSocket, packet).start(); // Starting up a new thread for each client, allowing a multi-client connection to the server
             }
         }
